@@ -5,7 +5,6 @@ import math
 # -------------------------------
 # 1. Carregamento dos datasets
 # -------------------------------
-# Se você tiver o módulo ucimlrepo instalado, poderá carregar os datasets diretamente:
 try:
     from ucimlrepo import fetch_ucirepo
     data_fetch_available = True
@@ -25,7 +24,6 @@ def stratified_split(df, target_col, train_ratio=0.7):
         cls_test = cls_data.drop(cls_train.index)
         train_df = pd.concat([train_df, cls_train])
         test_df = pd.concat([test_df, cls_test])
-    # Embaralha os conjuntos finais
     return train_df.sample(frac=1, random_state=42), test_df.sample(frac=1, random_state=42)
 
 # -------------------------------
@@ -167,12 +165,46 @@ class ID3Classifier:
         return None
 
 # -------------------------------
-# 5. Função de avaliação e execução dos experimentos
+# 5. Função para avaliação e plotagem da matriz de confusão
 # -------------------------------
+def compute_confusion_matrix(y_true, y_pred, classes):
+    cm = [[0 for _ in classes] for _ in classes]
+    class_to_index = {cls: idx for idx, cls in enumerate(classes)}
+    for true, pred in zip(y_true, y_pred):
+        i = class_to_index[true]
+        j = class_to_index[pred]
+        cm[i][j] += 1
+    return cm
+
+def plot_confusion_matrix(cm, classes, title="Matriz de Confusão"):
+    plt.figure(figsize=(8,6))
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.title(title, fontsize=16)
+    plt.colorbar()
+    tick_marks = range(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45, fontsize=12)
+    plt.yticks(tick_marks, classes, fontsize=12)
+    plt.xlabel("Rótulo Predito", fontsize=14)
+    plt.ylabel("Rótulo Real", fontsize=14)
+    
+    thresh = cm[0][0] if len(cm) == 1 else max(max(row) for row in cm) / 2.0
+    for i in range(len(cm)):
+        for j in range(len(cm[0])):
+            plt.text(j, i, format(cm[i][j], 'd'),
+                     horizontalalignment="center",
+                     color="white" if cm[i][j] > thresh else "black",
+                     fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
 def evaluate_classifier(classifier, X_train, y_train, X_test, y_test):
     classifier.fit(X_train, y_train)
     predictions = classifier.predict(X_test)
     accuracy = sum(pred == true for pred, true in zip(predictions, y_test)) / len(y_test)
+    # Cálculo e plotagem da matriz de confusão
+    classes = list(y_test.unique())
+    cm = compute_confusion_matrix(y_test.tolist(), predictions, classes)
+    plot_confusion_matrix(cm, classes, title="Matriz de Confusão")
     return accuracy
 
 def run_experiment(dataset_name, X, y):
@@ -186,11 +218,13 @@ def run_experiment(dataset_name, X, y):
     y_test = test_data['label']
     
     # Avaliação do Naive Bayes
+    print("\n--- Naive Bayes ---")
     nb = NaiveBayesClassifier()
     acc_nb = evaluate_classifier(nb, X_train, y_train, X_test, y_test)
     print("Acurácia Naive Bayes:", acc_nb)
     
     # Avaliação do ID3
+    print("\n--- ID3 ---")
     id3 = ID3Classifier()
     acc_id3 = evaluate_classifier(id3, X_train, y_train, X_test, y_test)
     print("Acurácia ID3:", acc_id3)
@@ -217,7 +251,7 @@ else:
     print("Módulo ucimlrepo não disponível. Carregue os datasets manualmente (ex.: pd.read_csv).")
 
 # -------------------------------
-# 6. Visualização dos resultados
+# 6. Visualização dos resultados finais
 # -------------------------------
 if datasets_results:
     datasets = list(datasets_results.keys())
@@ -230,11 +264,10 @@ if datasets_results:
     plt.figure(figsize=(8,6))
     plt.bar(x, nb_accuracies, width, label='Naive Bayes')
     plt.bar([p + width for p in x], id3_accuracies, width, label='ID3')
-    plt.xlabel('Datasets')
-    plt.ylabel('Acurácia')
-    plt.title('Comparação de Acurácia: Naive Bayes vs ID3')
-    plt.xticks([p + width/2 for p in x], datasets)
+    plt.xlabel('Datasets', fontsize=14)
+    plt.ylabel('Acurácia', fontsize=14)
+    plt.title('Comparação de Acurácia: Naive Bayes vs ID3', fontsize=16)
+    plt.xticks([p + width/2 for p in x], datasets, fontsize=12)
     plt.ylim(0,1)
-    plt.legend()
+    plt.legend(fontsize=12)
     plt.show()
-
