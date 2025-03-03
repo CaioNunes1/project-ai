@@ -5,7 +5,7 @@ import math
 # -------------------------------
 # 1. Carregamento dos datasets
 # -------------------------------
-# Se você tiver o módulo ucimlrepo instalado, poderá carregar os datasets diretamente:
+
 try:
     from ucimlrepo import fetch_ucirepo
     data_fetch_available = True
