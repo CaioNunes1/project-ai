@@ -5,6 +5,7 @@ import math
 # -------------------------------
 # 1. Carregamento dos datasets
 # -------------------------------
+
 try:
     from ucimlrepo import fetch_ucirepo
     data_fetch_available = True
@@ -14,6 +15,7 @@ except ImportError:
 # -------------------------------
 # 2. Função para divisão estratificada
 # -------------------------------
+#dividindo os dados para treinamento e teste
 def stratified_split(df, target_col, train_ratio=0.7):
     train_df = pd.DataFrame()
     test_df = pd.DataFrame()
@@ -111,7 +113,7 @@ class ID3Classifier:
             splits = {}
             for val in data[feature].unique():
                 splits[val] = data[data[feature] == val]
-            weighted_entropy = sum((len(subset) / len(data)) * self._entropy(subset['label']) 
+            weighted_entropy = sum((len(subset)/len(data)) * self._entropy(subset['label']) 
                                    for subset in splits.values())
             gain = current_entropy - weighted_entropy
             if gain > best_gain:
@@ -198,9 +200,10 @@ def plot_confusion_matrix(cm, classes, title="Matriz de Confusão"):
     plt.show()
 
 def evaluate_classifier(classifier, X_train, y_train, X_test, y_test):
-    classifier.fit(X_train, y_train)
+    classifier.fit(X_train, y_train)#trainando/aprendizagem dos dados
     predictions = classifier.predict(X_test)
     accuracy = sum(pred == true for pred, true in zip(predictions, y_test)) / len(y_test)
+    # Cálculo e plotagem da matriz de confusão
     classes = list(y_test.unique())
     cm = compute_confusion_matrix(y_test.tolist(), predictions, classes)
     plot_confusion_matrix(cm, classes, title="Matriz de Confusão")
@@ -230,28 +233,8 @@ def run_experiment(dataset_name, X, y):
     
     return acc_nb, acc_id3
 
-# -------------------------------
-# 6. Função para predição interativa com Naive Bayes
-# -------------------------------
-def user_predict_naive_bayes(classifier, feature_names):
-    print("\nInforme os valores para as seguintes características:")
-    instance = {}
-    for feature in feature_names:
-        value = input(f"{feature}: ")
-        instance[feature] = value
-    df_instance = pd.DataFrame([instance])
-    proba = classifier.predict_proba(df_instance)[0]
-    predicted_class = max(proba, key=proba.get)
-    print("\nProbabilidades preditas:")
-    for cls, p in proba.items():
-        print(f"  {cls}: {p:.4f}")
-    print(f"\nClasse predita: {predicted_class}")
-    return predicted_class
-
-# -------------------------------
-# 7. Execução dos experimentos e predição interativa
-# -------------------------------
 datasets_results = {}
+
 if data_fetch_available:
     # ----- Congressional Voting Records -----
     congressional = fetch_ucirepo(id=105)
@@ -266,37 +249,20 @@ if data_fetch_available:
     y_breast = breast.data.targets
     acc_nb, acc_id3 = run_experiment("Breast Cancer", X_breast, y_breast)
     datasets_results["Breast Cancer"] = (acc_nb, acc_id3)
-    
-    # Predição interativa para Breast Cancer usando Naive Bayes
-    print("\n--- Predição Interativa com Naive Bayes para Breast Cancer ---")
-    # Treina o modelo com uma parte dos dados do Breast Cancer
-    data_breast = X_breast.copy()
-    data_breast['label'] = y_breast
-    train_data, test_data = stratified_split(data_breast, 'label', train_ratio=0.7)
-    X_train = train_data.drop('label', axis=1)
-    y_train = train_data['label']
-    nb_breast = NaiveBayesClassifier()
-    nb_breast.fit(X_train, y_train)
-    
-    print("\nCaracterísticas disponíveis para predição:")
-    print(list(X_train.columns))
-    user_choice = input("\nDeseja inserir um novo caso para inferência? (S/N): ")
-    if user_choice.lower() == 's':
-        user_predict_naive_bayes(nb_breast, X_train.columns)
 else:
     print("Módulo ucimlrepo não disponível. Carregue os datasets manualmente (ex.: pd.read_csv).")
 
 # -------------------------------
-# 8. Visualização dos resultados finais
+# 6. Visualização dos resultados finais
 # -------------------------------
 if datasets_results:
     datasets = list(datasets_results.keys())
     nb_accuracies = [datasets_results[d][0] for d in datasets]
     id3_accuracies = [datasets_results[d][1] for d in datasets]
-    
+
     x = range(len(datasets))
     width = 0.35
-    
+
     plt.figure(figsize=(8,6))
     plt.bar(x, nb_accuracies, width, label='Naive Bayes')
     plt.bar([p + width for p in x], id3_accuracies, width, label='ID3')
